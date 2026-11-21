@@ -1,7 +1,8 @@
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head><link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#174ea6">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Smart Learning — Offline Version</title>
@@ -42,7 +43,14 @@ a{color:var(--blue)}
 @media print{header,nav,button,.no-print{display:none!important}body{background:white}.card{box-shadow:none}}
 </style>
 </head>
-<body>
+<body><script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .catch(error => console.error("Service worker error:", error));
+  });
+}
+</script>
 
 <header>
   <div>
