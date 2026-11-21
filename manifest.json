@@ -1,0 +1,10 @@
+{
+  "name": "Smart Learning",
+  "short_name": "Smart Learning",
+  "description": "An e-learning platform for teachers and learners.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#174ea6",
+  "background_color": "#eef4ff"
+}
