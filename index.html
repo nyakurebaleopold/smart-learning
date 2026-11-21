@@ -1,0 +1,1169 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Learning — Offline Version</title>
+<style>
+:root{--blue:#174ea6;--light:#eef4ff;--dark:#172b4d;--green:#16834a;--red:#c0392b}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,#edf3ff 0,#f6f8fc 260px);color:#25334a;min-height:100vh}
+header{background:linear-gradient(115deg,#123b80,#2464c5);color:white;padding:20px max(20px,calc((100% - 1120px)/2));display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 4px 18px #123b8025}
+header h1{margin:0;font-size:27px;letter-spacing:.2px}
+main{max-width:1150px;margin:25px auto;padding:0 16px}
+.card{background:white;padding:22px;border-radius:14px;box-shadow:0 5px 22px #1b376012;margin-bottom:18px;border:1px solid #e8edf5}
+h2,h3{color:var(--dark)}
+input,select,textarea{width:100%;padding:11px;margin:7px 0 13px;border:1px solid #ccd3df;border-radius:7px;font:inherit}
+textarea{min-height:85px;resize:vertical}
+button,.btn{border:0;border-radius:7px;padding:10px 15px;background:var(--blue);color:white;cursor:pointer;font-size:14px;margin:4px 3px;text-decoration:none;display:inline-block}
+button:hover,.btn:hover{opacity:.88}
+.secondary{background:#64748b}.success{background:var(--green)}.danger{background:var(--red)}
+.small{font-size:13px;color:#667085}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+.stat{background:linear-gradient(145deg,#f1f6ff,#e7efff);padding:18px;border-radius:12px;border:1px solid #e0eaff}
+.stat strong{font-size:25px;display:block;color:var(--blue);margin-top:6px}
+nav{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;padding:10px;background:#fff;border:1px solid #e4eaf3;border-radius:12px;box-shadow:0 2px 10px #00000008}
+nav button{background:#eaf0fb;color:#174ea6;margin:0}
+nav button.active{background:var(--blue);color:white}
+.hidden{display:none!important}
+.item{border:1px solid #e0e7f0;padding:15px;border-radius:11px;margin:10px 0;background:#fff}
+.item h3{margin-top:0}
+.tag{display:inline-block;padding:4px 8px;border-radius:5px;background:#e8efff;color:#174ea6;font-size:12px}
+table{width:100%;border-collapse:collapse;margin:12px 0;background:white}
+th,td{border:1px solid #dce2eb;padding:9px;text-align:left}
+th{background:#edf2fa}
+.table-wrap{overflow-x:auto}
+hr{border:0;border-top:1px solid #e5e7eb;margin:18px 0}
+footer{text-align:center;padding:25px;color:#667085}
+label{font-weight:bold;font-size:14px}
+a{color:var(--blue)}
+@media(max-width:600px){header{display:block;padding:18px}header h1{margin-bottom:8px}.card{padding:14px}main{margin:14px auto}nav button{flex:1 1 auto}}
+@media print{header,nav,button,.no-print{display:none!important}body{background:white}.card{box-shadow:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📚 Smart Learning</h1>
+    <span>Digital Learning Management System</span>
+  </div>
+  <div id="headerUser"></div>
+</header>
+
+<main>
+<section id="authArea">
+  <div class="card">
+    <h2>Welcome to Smart Learning</h2>
+    <p>Choose an account type to continue.</p>
+    <div class="grid">
+      <div>
+        <h3>Teacher Registration</h3>
+        <form id="teacherReg">
+          <label>Full name</label>
+          <input id="teacherName" required>
+          <label>Username</label>
+          <input id="teacherEmail" required autocomplete="username">
+          <label>Password</label>
+          <input id="teacherPassword" type="password" required minlength="6">
+          <button class="success">Register as Teacher</button>
+        </form>
+      </div>
+      <div>
+        <h3>Teacher Login</h3>
+        <form id="teacherLogin">
+          <label>Username</label>
+          <input id="teacherLoginEmail" required autocomplete="username">
+          <label>Password</label>
+          <input id="teacherLoginPassword" type="password" required>
+          <button>Teacher Login</button>
+        </form>
+      </div>
+      <div>
+        <h3>Learner Login</h3>
+        <form id="learnerLogin">
+          <label>Learner ID (given by your teacher)</label>
+          <input id="learnerLoginId" placeholder="For example, SL-A1B2C3D4E5F6" required autocomplete="username">
+          <label>Password</label>
+          <input id="learnerLoginPassword" type="password" required>
+          <button>Learner Login</button>
+        </form>
+      </div>
+    </div>
+    <p id="authMessage"></p>
+    <p id="cloudStatus" class="small"></p>
+    <p id="cloudNotice" class="small">This version stores information in this browser on this device only.</p>
+  </div>
+</section>
+
+<section id="appArea" class="hidden">
+  <div class="card">
+    <h2 id="welcomeTitle">Dashboard</h2>
+    <p id="welcomeText"></p>
+    <div id="stats" class="grid"></div>
+  </div>
+  <nav id="navigation"></nav>
+  <div id="content"></div>
+</section>
+</main>
+
+<footer>Smart Learning | Learning without limits</footer>
+
+<script>
+/* ---------- DATA STORAGE ---------- */
+const keys = {
+ teachers:"slTeachers", learners:"slLearners",
+ materials:"slMaterials", assessments:"slAssessments",
+ results:"slResults", attendance:"slAttendance",
+ announcements:"slAnnouncements", messages:"slMessages",
+ timetable:"slTimetable", homework:"slHomework",
+ submissions:"slSubmissions", classes:"smartLearningClasses",
+ library:"smartLearningLibrary"
+};
+
+/* ---------- LESSON 19: LOCAL BROWSER STORAGE ----------
+   No Firebase or internet connection is required. Data stays in this browser
+   profile on this device. This is a learning prototype, not a secure hosted system.
+*/
+let currentUser=null;
+let currentRole=null;
+let activePage="home";
+function cloudStatus(){
+ const el=document.getElementById("cloudStatus");
+ if(el)el.textContent="Offline mode active — Firebase is not used.";
+ const notice=document.getElementById("cloudNotice");
+ if(notice)notice.textContent="Data is saved only in this browser and device. It will not automatically sync to other devices.";
+}
+function scopedStorageKey(key){
+ if(!currentUser)return key;
+ const owner=currentRole==="learner"?(currentUser.teacherUid||"unlinked"):currentUser.uid||currentUser.id;
+ return "slw_"+owner+"_"+key;
+}
+function getData(key){
+ try{return JSON.parse(localStorage.getItem(scopedStorageKey(key))) || []}
+ catch(e){return []}
+}
+function saveData(key,data){
+ try{localStorage.setItem(scopedStorageKey(key),JSON.stringify(data));return true;}
+ catch(e){alert("Browser storage is full. Remove some large files or resources and try again.");return false;}
+}
+function createLearnerId(){
+ const bytes=new Uint8Array(6);
+ if(window.crypto&&window.crypto.getRandomValues)window.crypto.getRandomValues(bytes);
+ else for(let i=0;i<bytes.length;i++)bytes[i]=Math.floor(Math.random()*256);
+ return "SL-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
+}
+function accountList(){try{return JSON.parse(localStorage.getItem("slLocalAccounts")||"[]")}catch(e){return []}}
+function saveAccounts(list){localStorage.setItem("slLocalAccounts",JSON.stringify(list))}
+async function passwordHash(password,salt){
+ const data=new TextEncoder().encode(salt+"|"+password);
+ if(window.crypto&&crypto.subtle){
+  const key=await crypto.subtle.importKey("raw",data,{name:"PBKDF2"},false,["deriveBits"]);
+  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:new TextEncoder().encode(salt),iterations:100000,hash:"SHA-256"},key,256);
+  return Array.from(new Uint8Array(bits),b=>b.toString(16).padStart(2,"0")).join("");
+ }
+ // Fallback for older/local file browsers; this is not suitable for sensitive accounts.
+ let h=2166136261;for(const c of data)h=Math.imul(h^c,16777619);return (h>>>0).toString(16);
+}
+function makeSalt(){const bytes=new Uint8Array(16);if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(bytes);else for(let i=0;i<bytes.length;i++)bytes[i]=Math.floor(Math.random()*256);return Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("")}
+function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function esc(value){
+ return String(value ?? "").replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
+function message(text,good=true){
+ const el=document.getElementById("authMessage");
+ if(el){el.textContent=text;el.style.color=good?"green":"red"}
+}
+/* ---------- LOCAL REGISTRATION AND LOGIN ---------- */
+document.getElementById("teacherReg").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const name=document.getElementById("teacherName").value.trim();
+ const username=document.getElementById("teacherEmail").value.trim().toLowerCase();
+ const password=document.getElementById("teacherPassword").value;
+ if(password.length<6){message("Use a password with at least 6 characters.",false);return;}
+ const accounts=accountList();
+ if(accounts.some(a=>a.role==="teacher"&&a.username===username)){message("That username is already registered. Please log in.",false);return;}
+ try{
+  const salt=makeSalt(),uid=id();
+  accounts.push({uid,id:uid,name,username,role:"teacher",salt,passwordHash:await passwordHash(password,salt),createdAt:new Date().toISOString()});
+  saveAccounts(accounts);e.target.reset();message("Teacher account created. You can now log in.");
+ }catch(error){message("The account could not be saved in this browser.",false);}
+});
+
+document.getElementById("teacherLogin").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const username=document.getElementById("teacherLoginEmail").value.trim().toLowerCase();
+ const password=document.getElementById("teacherLoginPassword").value;
+ const account=accountList().find(a=>a.role==="teacher"&&a.username===username);
+ if(!account||await passwordHash(password,account.salt)!==account.passwordHash){message("Incorrect username or password.",false);return;}
+ login(account,"teacher");
+});
+
+document.getElementById("learnerLogin").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const learnerId=document.getElementById("learnerLoginId").value.trim().toUpperCase();
+ const password=document.getElementById("learnerLoginPassword").value;
+ const account=accountList().find(a=>a.role==="learner"&&a.learnerId===learnerId);
+ if(!account||await passwordHash(password,account.salt)!==account.passwordHash){message("Incorrect Learner ID or password.",false);return;}
+ login(account,"learner");
+});
+function login(user,role){
+ currentUser=user;currentRole=role;activePage="home";
+ cloudStatus();
+ document.getElementById("authArea").classList.add("hidden");
+ document.getElementById("appArea").classList.remove("hidden");
+ document.getElementById("headerUser").innerHTML=
+  esc(user.name)+" <button class='secondary' onclick='logout()'>Log out</button>";
+ render();
+}
+function logout(){
+ currentUser=null;currentRole=null;
+ document.getElementById("appArea").classList.add("hidden");
+ document.getElementById("authArea").classList.remove("hidden");
+ document.getElementById("headerUser").innerHTML="";
+}
+
+/* ---------- SHARED HELPERS ---------- */
+function learners(){return getData("slLearners")}
+function teacherOnly(){return currentRole==="teacher"}
+function learnerOnly(){return currentRole==="learner"}
+function pageButton(page,label){
+ return `<button class="${activePage===page?"active":""}" onclick="go('${page}')">${label}</button>`;
+}
+function go(page){activePage=page;render()}
+function panel(title,body){
+ return `<div class="card"><h2>${title}</h2>${body}</div>`;
+}
+function empty(text){return `<p class="small">${text}</p>`}
+function printPage(){window.print()}
+
+/* ---------- MAIN RENDERING ---------- */
+function render(){
+ document.getElementById("welcomeTitle").textContent=
+  currentRole==="teacher"?"Teacher Dashboard":"Learner Dashboard";
+ document.getElementById("welcomeText").textContent=
+  "Welcome, "+currentUser.name+". Select a section below.";
+
+ const stats=document.getElementById("stats");
+ if(teacherOnly()){
+  stats.innerHTML=`
+   <div class="stat">Registered learners<strong>${learners().length}</strong></div>
+   <div class="stat">Assessments<strong>${getData(keys.assessments).length}</strong></div>
+   <div class="stat">Homework tasks<strong>${getData(keys.homework).length}</strong></div>
+   <div class="stat">Online lessons<strong>${getData(keys.classes).length}</strong></div>
+   <div class="stat">Library resources<strong>${getData(keys.library).length}</strong></div>`;
+ }else{
+  const completed=getData(keys.materials).filter(m=>
+   (m.completed||[]).includes(currentUser.id)).length;
+  stats.innerHTML=`
+   <div class="stat">Learning materials completed<strong>${completed}</strong></div>
+   <div class="stat">Available assessments<strong>${getData(keys.assessments).length}</strong></div>
+   <div class="stat">Online lessons<strong>${getData(keys.classes).length}</strong></div>
+   <div class="stat">Library resources<strong>${getData(keys.library).length}</strong></div>`;
+ }
+
+ let pages=teacherOnly()
+ ?[
+  ["home","Home"],["learners","Manage Learners"],["materials","Learning Materials"],
+  ["assessments","Assessments"],["results","Assessment Results"],
+  ["attendance","Attendance"],["reports","Reports"],
+  ["analytics","Performance Analytics"],
+  ["announcements","Announcements"],["messages","Messages"],
+  ["timetable","Timetable"],["homework","Homework"],
+  ["classes","Online Classroom"],["library","Digital Library"],["settings","Settings"]
+ ]
+ :[
+  ["home","Home"],["materials","Learning Materials"],
+  ["assessments","Assessments"],["myresults","My Results"],
+  ["attendance","My Attendance"],["announcements","Announcements"],
+  ["messages","Messages"],["timetable","Timetable"],
+  ["homework","My Homework"],["classes","Online Classroom"],
+  ["library","Digital Library"],["settings","Settings"]
+ ];
+
+ document.getElementById("navigation").innerHTML=
+  pages.map(p=>pageButton(p[0],p[1])).join("");
+ showPage();
+}
+
+function showPage(){
+ const c=document.getElementById("content");
+ const pages={
+  home:homePage,learners:learnerManagement,materials:materialsPage,
+  assessments:assessmentsPage,results:resultsPage,myresults:myResultsPage,
+  attendance:attendancePage,reports:reportsPage,analytics:analyticsPage,
+  announcements:announcementsPage,messages:messagesPage,
+  timetable:timetablePage,homework:homeworkPage,classes:classesPage,
+  library:libraryPage,settings:settingsPage
+ };
+ c.innerHTML=(pages[activePage]||homePage)();
+}
+
+/* ---------- DASHBOARD ---------- */
+function homePage(){
+ if(teacherOnly()){
+  return panel("Welcome to Smart Learning",
+   `<p>Your teaching workspace brings learner management, teaching resources, assessment, attendance and communication together in one place.</p>
+   <div class="grid">
+    <div class="item"><h3>👩‍🏫 Learners</h3><p>Register, search and manage learner accounts.</p><button onclick="go('learners')">Manage Learners</button></div>
+    <div class="item"><h3>📝 Assessments</h3><p>Create assessments and review learner performance.</p><button onclick="go('assessments')">Create Assessment</button></div>
+    <div class="item"><h3>📋 Attendance</h3><p>Record attendance and generate reports.</p><button onclick="go('attendance')">Take Attendance</button></div>
+    <div class="item"><h3>📚 Learning Resources</h3><p>Share notes, materials and library resources.</p><button onclick="go('materials')">Open Materials</button></div>
+    <div class="item"><h3>💬 Communication</h3><p>Share announcements and communicate with learners.</p><button onclick="go('announcements')">Open Announcements</button></div>
+    <div class="item"><h3>⚙️ Application Settings</h3><p>Back up your data and check app storage.</p><button onclick="go('settings')">Open Settings</button></div>
+   </div>`);
+ }
+ const notices=getData(keys.announcements);
+ const latest=notices.slice().reverse().slice(0,3);
+ return panel("Learner Home",
+  `<p>Welcome to your learning area. You can access your lessons, assessments, homework and online classroom here.</p>
+  <h3>Latest announcements</h3>
+  ${latest.length?latest.map(a=>`<div class="item"><b>${esc(a.title)}</b><p>${esc(a.text)}</p></div>`).join(""):empty("No announcements yet.")}`);
+}
+
+/* ---------- LEARNER MANAGEMENT ---------- */
+function learnerManagement(){
+ const list=learners();
+ return panel("Manage Learners",`
+ <h3>Register a learner</h3>
+ <form onsubmit="addLearner(event)">
+  <label>Full name</label><input id="newLearnerName" required>
+  <label>Temporary password</label><input id="newLearnerPassword" type="password" required minlength="6">
+  <p class="small">A unique Learner ID will be generated. Give the ID and temporary password directly to the learner. Login details are saved locally in this browser.</p>
+  <button class="success">Register Learner</button>
+ </form>
+ <hr><h3>Registered learners (${list.length})</h3>
+ <input id="learnerSearch" placeholder="Search learners..." oninput="filterLearners()">
+ <div id="learnerList">${learnerRows(list)}</div>`);
+}
+function learnerRows(list){
+ if(!list.length)return empty("No learners registered.");
+ return list.map(l=>`<div class="item">
+ <b>${esc(l.name)}</b> <span class="tag">${esc(l.learnerId||"ID unavailable")}</span>
+ <button onclick="editLearner('${l.id}')">Edit</button>
+ <button class="danger" onclick="deleteLearner('${l.id}')">Delete</button>
+ </div>`).join("");
+}
+async function addLearner(e){
+ e.preventDefault();
+ const list=learners(),name=document.getElementById("newLearnerName").value.trim();
+ const password=document.getElementById("newLearnerPassword").value;
+ if(list.some(l=>l.name.toLowerCase()===name.toLowerCase())){alert("That learner is already registered in your class.");return;}
+ if(password.length<6){alert("Use a temporary password with at least 6 characters.");return;}
+ try{
+  const learnerId=createLearnerId(),learnerUid=id(),salt=makeSalt(),teacherUid=currentUser.uid||currentUser.id;
+  const learner={id:learnerUid,uid:learnerUid,learnerId,name,role:"learner",teacherUid,createdAt:new Date().toISOString()};
+  const accounts=accountList();
+  accounts.push({...learner,salt,passwordHash:await passwordHash(password,salt)});saveAccounts(accounts);
+  list.push(learner);saveData("slLearners",list);
+  document.getElementById("newLearnerName").value="";document.getElementById("newLearnerPassword").value="";
+  render();alert("Learner registered. Learner ID: "+learnerId+". Give the learner this ID and their temporary password.");
+ }catch(error){alert("The learner account could not be saved. Check available browser storage.");}
+}
+function editLearner(learnerId){
+ const l=learners().find(x=>x.id===learnerId);if(!l)return;
+ const name=prompt("Edit learner full name:",l.name);if(name===null)return;
+ const cleanName=name.trim();if(!cleanName){alert("Name cannot be empty.");return;}
+ l.name=cleanName;saveData("slLearners",learners());
+ const accounts=accountList();const a=accounts.find(x=>x.uid===learnerId&&x.role==="learner");if(a)a.name=cleanName;saveAccounts(accounts);render();
+}
+function deleteLearner(learnerId){
+ if(!confirm("Remove this learner from this browser and delete their local login?"))return;
+ saveData("slLearners",learners().filter(l=>l.id!==learnerId));
+ saveAccounts(accountList().filter(a=>!(a.role==="learner"&&a.uid===learnerId)));render();
+}
+function filterLearners(){
+ const q=document.getElementById("learnerSearch").value.toLowerCase();
+ document.getElementById("learnerList").innerHTML=
+  learnerRows(learners().filter(l=>l.name.toLowerCase().includes(q)));
+}
+
+/* ---------- LEARNING MATERIALS ---------- */
+function materialsPage(){
+ const list=getData(keys.materials);
+ let html="";
+ if(teacherOnly()){
+  html+=`<h3>Add learning material</h3>
+  <form onsubmit="addMaterial(event)">
+   <label>Title</label><input id="materialTitle" required>
+   <label>Description or lesson notes</label><textarea id="materialDescription" required></textarea>
+   <button class="success">Add Material</button>
+  </form><hr>`;
+ }
+ html+="<h3>Available learning materials</h3>";
+ html+=list.length?list.map(m=>{
+  const done=(m.completed||[]).includes(currentUser.id);
+  return `<div class="item"><h3>${esc(m.title)}</h3><p>${esc(m.description)}</p>
+   <span class="tag">${done?"Completed":"Not completed"}</span>
+   ${learnerOnly()?`<button onclick="completeMaterial('${m.id}')">${done?"Mark as not completed":"Mark as completed"}</button>`:""}
+   ${teacherOnly()?`<button class="danger" onclick="deleteMaterial('${m.id}')">Delete</button>`:""}
+  </div>`;
+ }).join(""):empty("No learning materials have been added.");
+ return panel("Learning Materials",html);
+}
+function addMaterial(e){
+ e.preventDefault();const list=getData(keys.materials);
+ list.push({id:id(),title:document.getElementById("materialTitle").value,
+ description:document.getElementById("materialDescription").value,completed:[]});
+ saveData(keys.materials,list);render();
+}
+function completeMaterial(materialId){
+ const list=getData(keys.materials),m=list.find(x=>x.id===materialId);if(!m)return;
+ m.completed=m.completed||[];
+ m.completed=m.completed.includes(currentUser.id)
+ ?m.completed.filter(x=>x!==currentUser.id):[...m.completed,currentUser.id];
+ saveData(keys.materials,list);render();
+}
+function deleteMaterial(materialId){
+ if(!confirm("Delete this learning material?"))return;
+ saveData(keys.materials,getData(keys.materials).filter(x=>x.id!==materialId));render();
+}
+
+/* ---------- ASSESSMENTS ---------- */
+function assessmentsPage(){
+ const list=getData(keys.assessments);
+ let html="";
+ if(teacherOnly()){
+  html+=`<h3>Create an assessment</h3>
+  <form onsubmit="addAssessment(event)">
+   <label>Assessment title</label><input id="assessmentTitle" required>
+   <label>Subject</label><input id="assessmentSubject" placeholder="e.g. Mathematics, English, Science" required>
+   <label>Description</label><textarea id="assessmentDescription"></textarea>
+   <button class="success">Create Assessment</button>
+  </form><hr>`;
+ }
+ html+="<h3>Available assessments</h3>";
+ html+=list.length?list.map(a=>{
+  const attempted=getData(keys.results).some(r=>r.assessmentId===a.id&&r.learnerId===currentUser.id);
+  return `<div class="item"><h3>${esc(a.title)}</h3><p>${esc(a.description||"")}</p>
+   <span class="tag">${a.questions.length} questions</span>
+   ${learnerOnly()?(attempted?"<p>Already submitted</p>":`<button onclick="takeAssessment('${a.id}')">Take Assessment</button>`):`
+   <button onclick="addQuestion('${a.id}')">Add Question</button>
+   <button onclick="editAssessment('${a.id}')">Edit Title</button>
+   <button class="danger" onclick="deleteAssessment('${a.id}')">Delete</button>`}
+  </div>`;
+ }).join(""):empty("No assessments available.");
+ return panel("Assessments",html);
+}
+function addAssessment(e){
+ e.preventDefault();const list=getData(keys.assessments);
+ list.push({id:id(),title:document.getElementById("assessmentTitle").value,
+ subject:document.getElementById("assessmentSubject").value.trim(),
+ description:document.getElementById("assessmentDescription").value,questions:[]});
+ saveData(keys.assessments,list);render();
+}
+function addQuestion(assessmentId){
+ const list=getData(keys.assessments),a=list.find(x=>x.id===assessmentId);if(!a)return;
+ const question=prompt("Enter the question:");if(!question)return;
+ const options=[];
+ for(let i=0;i<4;i++){
+  const value=prompt("Enter option "+String.fromCharCode(65+i)+":");
+  if(value===null||!value.trim()){alert("Please enter all four options.");return}
+  options.push(value.trim());
+ }
+ const answer=prompt("Enter the correct option letter: A, B, C or D");
+ const correct=["A","B","C","D"].indexOf((answer||"").trim().toUpperCase());
+ if(correct<0){alert("Please enter A, B, C or D.");return}
+ a.questions.push({id:id(),question,options,correct});
+ saveData(keys.assessments,list);render();
+}
+function editAssessment(assessmentId){
+ const list=getData(keys.assessments),a=list.find(x=>x.id===assessmentId);if(!a)return;
+ const title=prompt("New assessment title:",a.title);
+ if(title){a.title=title;saveData(keys.assessments,list);render()}
+}
+function deleteAssessment(assessmentId){
+ if(!confirm("Delete this assessment and its questions?"))return;
+ saveData(keys.assessments,getData(keys.assessments).filter(a=>a.id!==assessmentId));render();
+}
+function takeAssessment(assessmentId){
+ const a=getData(keys.assessments).find(x=>x.id===assessmentId);if(!a)return;
+ if(!a.questions.length){alert("The teacher has not added questions yet.");return}
+ const c=document.getElementById("content");
+ c.innerHTML=panel(esc(a.title),`
+ <form id="takeForm">
+ ${a.questions.map((q,i)=>`<div class="item"><b>${i+1}. ${esc(q.question)}</b>
+ ${q.options.map((o,j)=>`<label style="display:block;font-weight:normal">
+ <input style="width:auto" type="radio" name="q${i}" value="${j}" required> ${String.fromCharCode(65+j)}. ${esc(o)}
+ </label>`).join("")}</div>`).join("")}
+ <button class="success">Submit Assessment</button>
+ <button type="button" class="secondary" onclick="render()">Cancel</button>
+ </form>`);
+ document.getElementById("takeForm").onsubmit=e=>{
+  e.preventDefault();
+  if(getData(keys.results).some(r=>r.assessmentId===a.id&&r.learnerId===currentUser.id)){
+   alert("You have already submitted this assessment.");render();return;
+  }
+  let score=0;
+  a.questions.forEach((q,i)=>{
+   const chosen=Number(new FormData(e.target).get("q"+i));
+   if(chosen===q.correct)score++;
+  });
+  const results=getData(keys.results);
+  results.push({id:id(),assessmentId:a.id,assessmentTitle:a.title,
+   subject:a.subject||"Unspecified",learnerId:currentUser.id,learnerName:currentUser.name,
+   score,total:a.questions.length,
+   percentage:Math.round(score/a.questions.length*100),date:new Date().toLocaleString()});
+  saveData(keys.results,results);
+  alert("Assessment submitted. Your score is "+score+"/"+a.questions.length+
+   " ("+Math.round(score/a.questions.length*100)+"%).");
+  render();
+ };
+}
+function resultsPage(){
+ const list=getData(keys.results);
+ return panel("Assessment Results",list.length?`
+ <div class="table-wrap"><table><tr><th>Learner</th><th>Assessment</th><th>Score</th><th>Percentage</th><th>Date</th></tr>
+ ${list.map(r=>`<tr><td>${esc(r.learnerName)}</td><td>${esc(r.assessmentTitle)}</td><td>${r.score}/${r.total}</td><td>${r.percentage}%</td><td>${esc(r.date)}</td></tr>`).join("")}</table></div>
+ <button onclick="printPage()">Print Results</button>`:empty("No assessment results yet."));
+}
+function myResultsPage(){
+ const list=getData(keys.results).filter(r=>r.learnerId===currentUser.id);
+ return panel("My Assessment Results",list.length?list.map(r=>
+ `<div class="item"><b>${esc(r.assessmentTitle)}</b><p>Score: ${r.score}/${r.total} | ${r.percentage}%</p><p>${esc(r.date)}</p></div>`
+ ).join(""):empty("You have not submitted an assessment yet."));
+}
+
+/* ---------- ATTENDANCE ---------- */
+function attendancePage(){
+ const list=getData(keys.attendance);
+ if(teacherOnly()){
+  return panel("Attendance Register",`
+  <form onsubmit="saveAttendance(event)">
+   <label>Attendance date</label><input id="attendanceDate" type="date" required value="${new Date().toISOString().slice(0,10)}">
+   <div class="table-wrap"><table><tr><th>Learner</th><th>Status</th></tr>
+   ${learners().map(l=>`<tr><td>${esc(l.name)}</td><td>
+    <select name="status_${esc(l.id)}">
+     <option>Present</option><option>Absent</option><option>Late</option>
+    </select></td></tr>`).join("")}
+   </table></div>
+   <button class="success">Save Attendance</button>
+  </form><hr><h3>Attendance Records</h3>
+  ${list.slice().reverse().map(r=>`<div class="item"><b>${esc(r.date)}</b>
+   <p>Present: ${r.records.filter(x=>x.status==="Present").length} |
+   Absent: ${r.records.filter(x=>x.status==="Absent").length} |
+   Late: ${r.records.filter(x=>x.status==="Late").length}</p>
+   <button onclick="viewAttendance('${r.id}')">View Register</button>
+  </div>`).join("")}`);
+ }
+ const records=list.flatMap(r=>r.records.filter(x=>x.learnerId===currentUser.id).map(x=>({...x,date:r.date})));
+ const present=records.filter(x=>x.status==="Present").length;
+ const rate=records.length?Math.round(present/records.length*100):0;
+ return panel("My Attendance",`
+ <div class="stat">Attendance rate<strong>${rate}%</strong></div>
+ ${records.length?records.map(r=>`<div class="item">${esc(r.date)} — <b>${esc(r.status)}</b></div>`).join(""):empty("No attendance records yet.")}`);
+}
+function saveAttendance(e){
+ e.preventDefault();const date=document.getElementById("attendanceDate").value;
+ const list=getData(keys.attendance);
+ const records=learners().map(l=>({
+  learnerId:l.id,learnerName:l.name,
+  status:e.target.elements["status_"+l.id].value
+ }));
+ const existing=list.find(r=>r.date===date);
+ if(existing)existing.records=records;
+ else list.push({id:id(),date,records});
+ saveData(keys.attendance,list);render();
+}
+function viewAttendance(recordId){
+ const r=getData(keys.attendance).find(x=>x.id===recordId);if(!r)return;
+ document.getElementById("content").innerHTML=panel("Attendance for "+esc(r.date),`
+ <div class="table-wrap"><table><tr><th>Learner</th><th>Status</th></tr>
+ ${r.records.map(x=>`<tr><td>${esc(x.learnerName)}</td><td>${esc(x.status)}</td></tr>`).join("")}</table></div>
+ <button onclick="printPage()">Print</button><button class="secondary" onclick="render()">Back</button>`);
+}
+
+/* ---------- REPORTS ---------- */
+function reportsPage(){
+ const list=learners(),results=getData(keys.results),attendance=getData(keys.attendance);
+ return panel("Class Reports",`
+ <div class="table-wrap"><table>
+ <tr><th>Learner</th><th>Assessments</th><th>Average</th><th>Attendance</th></tr>
+ ${list.map(l=>{
+  const lr=results.filter(r=>r.learnerId===l.id);
+  const avg=lr.length?Math.round(lr.reduce((s,r)=>s+r.percentage,0)/lr.length):0;
+  const records=attendance.flatMap(a=>a.records.filter(r=>r.learnerId===l.id));
+  const rate=records.length?Math.round(records.filter(r=>r.status==="Present").length/records.length*100):0;
+  return `<tr><td>${esc(l.name)}</td><td>${lr.length}</td><td>${avg}%</td><td>${rate}%</td></tr>`;
+ }).join("")}</table></div>
+ <button onclick="printPage()">Print Class Reports</button>`);
+}
+
+/* ---------- LESSON 15: STUDENT PERFORMANCE ANALYTICS ---------- */
+function analyticsPage(){
+ const students=learners();
+ const results=getData(keys.results);
+ const assessments=getData(keys.assessments);
+ const assessmentById=Object.fromEntries(assessments.map(a=>[a.id,a]));
+ const scoreOf=r=>Number(r.percentage ?? (r.total?Math.round(Number(r.score||0)/Number(r.total)*100):0));
+ const totalAttempts=results.length;
+ const average=totalAttempts?Math.round(results.reduce((sum,r)=>sum+scoreOf(r),0)/totalAttempts):0;
+ const passed=results.filter(r=>scoreOf(r)>=50).length;
+ const passRate=totalAttempts?Math.round(passed/totalAttempts*100):0;
+ const learnerStats=students.map(l=>{
+  const attempts=results.filter(r=>r.learnerId===l.id);
+  const avg=attempts.length?Math.round(attempts.reduce((sum,r)=>sum+scoreOf(r),0)/attempts.length):0;
+  return {id:l.id,name:l.name,attempts:attempts.length,average:avg,passed:attempts.filter(r=>scoreOf(r)>=50).length};
+ });
+ const subjectMap={};
+ results.forEach(r=>{
+  const assessment=assessmentById[r.assessmentId];
+  const subject=(r.subject||assessment?.subject||"Unspecified").trim()||"Unspecified";
+  if(!subjectMap[subject])subjectMap[subject]={count:0,total:0,passed:0};
+  subjectMap[subject].count++;
+  subjectMap[subject].total+=scoreOf(r);
+  if(scoreOf(r)>=50)subjectMap[subject].passed++;
+ });
+ const subjectStats=Object.entries(subjectMap).map(([subject,v])=>({subject,...v,average:Math.round(v.total/v.count),passRate:Math.round(v.passed/v.count*100)})).sort((a,b)=>b.average-a.average);
+ const top=learnerStats.filter(x=>x.attempts).sort((a,b)=>b.average-a.average)[0];
+ return panel("Student Performance Analytics",`
+  <p class="small">Performance is calculated from submitted assessments. A pass is counted as 50% or above.</p>
+  <div class="grid">
+   <div class="stat">Assessment submissions<strong>${totalAttempts}</strong></div>
+   <div class="stat">Class average<strong>${average}%</strong></div>
+   <div class="stat">Pass rate<strong>${passRate}%</strong></div>
+   <div class="stat">Learners assessed<strong>${learnerStats.filter(x=>x.attempts).length}/${students.length}</strong></div>
+  </div>
+  <hr><h3>Individual learner performance</h3>
+  ${students.length?`<div class="table-wrap"><table><tr><th>Learner</th><th>Attempts</th><th>Average mark</th><th>Passes</th><th>Performance</th></tr>
+  ${learnerStats.map(l=>`<tr><td>${esc(l.name)}</td><td>${l.attempts}</td><td>${l.attempts?l.average+"%":"—"}</td><td>${l.passed}</td><td>${l.attempts?(l.average>=50?"Pass":"Below 50% — needs support"):"Not yet assessed"}</td></tr>`).join("")}
+  </table></div>`:empty("No learners are registered yet.")}
+  <hr><h3>Subject performance analysis</h3>
+  ${subjectStats.length?`<div class="table-wrap"><table><tr><th>Subject</th><th>Submissions</th><th>Average</th><th>Pass rate</th></tr>
+  ${subjectStats.map(x=>`<tr><td>${esc(x.subject)}</td><td>${x.count}</td><td>${x.average}%</td><td>${x.passRate}%</td></tr>`).join("")}</table></div>`:empty("No subject results yet. Add a subject when creating assessments, then learners can submit them.")}
+  <hr><h3>Assessment performance</h3>
+  ${assessments.length?`<div class="table-wrap"><table><tr><th>Assessment</th><th>Subject</th><th>Submissions</th><th>Average</th></tr>
+  ${assessments.map(a=>{const ar=results.filter(r=>r.assessmentId===a.id);const avg=ar.length?Math.round(ar.reduce((sum,r)=>sum+scoreOf(r),0)/ar.length):0;return `<tr><td>${esc(a.title)}</td><td>${esc(a.subject||"Unspecified")}</td><td>${ar.length}</td><td>${ar.length?avg+"%":"—"}</td></tr>`}).join("")}</table></div>`:empty("No assessments have been created yet.")}
+  <hr><h3>Class highlight</h3>
+  <p>${top?`Highest current learner average: <b>${esc(top.name)}</b> (${top.average}%).`:"No learner performance data is available yet."}</p>
+  <p class="small">Older assessments created before the subject field was added remain available; their subject will appear as “Unspecified” unless a subject was already saved.</p>
+  <button onclick="printPage()">Print Analytics Report</button>
+ `);
+}
+
+/* ---------- ANNOUNCEMENTS ---------- */
+function announcementsPage(){
+ const list=getData(keys.announcements);
+ let html="";
+ if(teacherOnly())html+=`<form onsubmit="addAnnouncement(event)">
+ <label>Announcement title</label><input id="noticeTitle" required>
+ <label>Message</label><textarea id="noticeText" required></textarea>
+ <button class="success">Publish Announcement</button></form><hr>`;
+ html+=list.slice().reverse().map(a=>`<div class="item">
+ <h3>${esc(a.title)}</h3><p>${esc(a.text)}</p><span class="small">${esc(a.date)}</span>
+ ${teacherOnly()?`<button class="danger" onclick="deleteAnnouncement('${a.id}')">Delete</button>`:""}
+ </div>`).join("")||empty("No announcements yet.");
+ return panel("Announcements",html);
+}
+function addAnnouncement(e){
+ e.preventDefault();const list=getData(keys.announcements);
+ list.push({id:id(),title:document.getElementById("noticeTitle").value,
+ text:document.getElementById("noticeText").value,date:new Date().toLocaleString()});
+ saveData(keys.announcements,list);render();
+}
+function deleteAnnouncement(noticeId){
+ if(!confirm("Delete this announcement?"))return;
+ saveData(keys.announcements,getData(keys.announcements).filter(a=>a.id!==noticeId));render();
+}
+
+/* ---------- MESSAGES ---------- */
+function messagesPage(){
+ const list=getData(keys.messages);
+ if(learnerOnly()){
+  const mine=list.filter(m=>m.learnerId===currentUser.id);
+  return panel("Messages to Teacher",`
+  <form onsubmit="sendMessage(event)">
+   <label>Subject</label><input id="messageSubject" required>
+   <label>Message</label><textarea id="messageText" required></textarea>
+   <button class="success">Send Message</button>
+  </form><hr><h3>My messages</h3>
+  ${mine.slice().reverse().map(m=>`<div class="item"><b>${esc(m.subject)}</b>
+   <p>${esc(m.text)}</p><p class="small">Teacher reply: ${esc(m.reply||"No reply yet")}</p></div>`).join("")}`);
+ }
+ return panel("Teacher Inbox",list.slice().reverse().map(m=>`
+ <div class="item"><b>${esc(m.subject)}</b><p>From: ${esc(m.learnerName)}</p>
+ <p>${esc(m.text)}</p><p>Current reply: ${esc(m.reply||"No reply")}</p>
+ <button onclick="replyMessage('${m.id}')">Reply</button>
+ <button class="danger" onclick="deleteMessage('${m.id}')">Delete</button>
+ </div>`).join("")||empty("No messages received."));
+}
+function sendMessage(e){
+ e.preventDefault();const list=getData(keys.messages);
+ list.push({id:id(),learnerId:currentUser.id,learnerName:currentUser.name,
+ subject:document.getElementById("messageSubject").value,
+ text:document.getElementById("messageText").value,reply:""});
+ saveData(keys.messages,list);render();
+}
+function replyMessage(messageId){
+ const list=getData(keys.messages),m=list.find(x=>x.id===messageId);if(!m)return;
+ const reply=prompt("Enter your reply:",m.reply||"");
+ if(reply===null)return;m.reply=reply;saveData(keys.messages,list);render();
+}
+function deleteMessage(messageId){
+ if(!confirm("Delete this message?"))return;
+ saveData(keys.messages,getData(keys.messages).filter(m=>m.id!==messageId));render();
+}
+
+/* ---------- TIMETABLE ---------- */
+function timetablePage(){
+ const list=getData(keys.timetable);
+ let html="";
+ if(teacherOnly())html+=`<form onsubmit="addTimetable(event)">
+ <label>Day</label><select id="ttDay">
+ ${["Monday","Tuesday","Wednesday","Thursday","Friday"].map(d=>`<option>${d}</option>`).join("")}
+ </select>
+ <label>Subject</label><input id="ttSubject" required>
+ <label>Start time</label><input id="ttStart" type="time" required>
+ <label>End time</label><input id="ttEnd" type="time" required>
+ <button class="success">Add Timetable Lesson</button></form><hr>`;
+ html+=list.length?["Monday","Tuesday","Wednesday","Thursday","Friday"].map(day=>{
+  const lessons=list.filter(x=>x.day===day).sort((a,b)=>a.start.localeCompare(b.start));
+  return `<h3>${day}</h3>${lessons.map(x=>`<div class="item">
+   <b>${esc(x.subject)}</b> — ${esc(x.start)} to ${esc(x.end)}
+   ${teacherOnly()?`<button class="danger" onclick="deleteTimetable('${x.id}')">Delete</button>`:""}
+  </div>`).join("")||empty("No lessons scheduled.")}`;
+ }).join(""):empty("No timetable lessons have been added.");
+ return panel("Weekly Timetable",html+`<button onclick="printPage()">Print Timetable</button>`);
+}
+function addTimetable(e){
+ e.preventDefault();const list=getData(keys.timetable);
+ list.push({id:id(),day:document.getElementById("ttDay").value,
+ subject:document.getElementById("ttSubject").value,
+ start:document.getElementById("ttStart").value,end:document.getElementById("ttEnd").value});
+ saveData(keys.timetable,list);render();
+}
+function deleteTimetable(itemId){
+ saveData(keys.timetable,getData(keys.timetable).filter(x=>x.id!==itemId));render();
+}
+
+/* ---------- HOMEWORK ---------- */
+function homeworkPage(){
+ const list=getData(keys.homework),submissions=getData(keys.submissions);
+ let html="";
+ if(teacherOnly())html+=`<form onsubmit="addHomework(event)">
+ <label>Homework title</label><input id="hwTitle" required>
+ <label>Subject</label><input id="hwSubject" required>
+ <label>Instructions</label><textarea id="hwInstructions" required></textarea>
+ <label>Deadline</label><input id="hwDeadline" type="date" required>
+ <button class="success">Publish Homework</button></form><hr>`;
+ html+=list.map(h=>{
+  const own=submissions.find(s=>s.homeworkId===h.id&&s.learnerId===currentUser.id);
+  if(learnerOnly())return `<div class="item"><h3>${esc(h.title)}</h3>
+   <p>Subject: ${esc(h.subject)}</p><p>${esc(h.instructions)}</p>
+   <p>Deadline: ${esc(h.deadline)}</p>
+   ${own?`<p class="tag">Submitted</p><p>Mark: ${own.mark===null?"Not marked":own.mark+"/100"}</p><p>Feedback: ${esc(own.feedback||"No feedback yet")}</p>`:
+   `<form onsubmit="submitHomework(event,'${h.id}')"><textarea id="answer_${h.id}" placeholder="Type your answer..." required></textarea><button class="success">Submit Homework</button></form>`}
+  </div>`;
+  const count=submissions.filter(s=>s.homeworkId===h.id).length;
+  return `<div class="item"><h3>${esc(h.title)}</h3><p>${esc(h.subject)} — Deadline: ${esc(h.deadline)}</p>
+   <p>${esc(h.instructions)}</p><p>Submissions: ${count}</p>
+   <button onclick="viewSubmissions('${h.id}')">View Submissions</button>
+   <button class="danger" onclick="deleteHomework('${h.id}')">Delete</button></div>`;
+ }).join("")||empty("No homework tasks available.");
+ return panel("Homework and Assignments",html);
+}
+function addHomework(e){
+ e.preventDefault();const list=getData(keys.homework);
+ list.push({id:id(),title:document.getElementById("hwTitle").value,
+ subject:document.getElementById("hwSubject").value,
+ instructions:document.getElementById("hwInstructions").value,
+ deadline:document.getElementById("hwDeadline").value});
+ saveData(keys.homework,list);render();
+}
+function submitHomework(e,homeworkId){
+ e.preventDefault();const list=getData(keys.submissions);
+ if(list.some(s=>s.homeworkId===homeworkId&&s.learnerId===currentUser.id)){
+  alert("You have already submitted this homework.");return;
+ }
+ list.push({id:id(),homeworkId,learnerId:currentUser.id,
+ learnerName:currentUser.name,answer:document.getElementById("answer_"+homeworkId).value,
+ mark:null,feedback:""});
+ saveData(keys.submissions,list);render();
+}
+function viewSubmissions(homeworkId){
+ const list=getData(keys.submissions).filter(s=>s.homeworkId===homeworkId);
+ document.getElementById("content").innerHTML=panel("Homework Submissions",
+ list.map(s=>`<div class="item"><b>${esc(s.learnerName)}</b>
+ <p>${esc(s.answer)}</p><p>Mark: ${s.mark===null?"Not marked":s.mark}</p>
+ <p>Feedback: ${esc(s.feedback||"No feedback")}</p>
+ <button onclick="markHomework('${s.id}')">Mark Submission</button></div>`).join("")||empty("No submissions yet.")+
+ `<button class="secondary" onclick="render()">Back</button>`);
+}
+function markHomework(submissionId){
+ const list=getData(keys.submissions),s=list.find(x=>x.id===submissionId);if(!s)return;
+ const mark=prompt("Enter a mark from 0 to 100:");
+ if(mark===null)return;
+ const n=Number(mark);if(!Number.isInteger(n)||n<0||n>100){alert("Enter a whole number from 0 to 100.");return}
+ const feedback=prompt("Enter feedback for the learner:","");
+ s.mark=n;s.feedback=feedback||"";saveData(keys.submissions,list);viewSubmissions(s.homeworkId);
+}
+function deleteHomework(homeworkId){
+ if(!confirm("Delete this homework task?"))return;
+ saveData(keys.homework,getData(keys.homework).filter(h=>h.id!==homeworkId));render();
+}
+
+/* ---------- LESSON 13: ONLINE CLASSROOM ---------- */
+function classesPage(){
+ const list=getData(keys.classes);
+ let html="";
+ if(teacherOnly()){
+  html+=`<h3>Create an online classroom session</h3>
+  <form onsubmit="addClass(event)">
+   <label>Lesson title</label><input id="classTitle" required>
+   <label>Subject</label><input id="classSubject" required>
+   <label>Lesson description</label><textarea id="classDescription" required></textarea>
+   <label>Online meeting link</label><input id="classLink" type="url" placeholder="https://..." required>
+   <label>Lesson notes</label><textarea id="classNotes"></textarea>
+   <button class="success">Publish Online Lesson</button>
+  </form><hr><h3>Manage online lessons</h3>`;
+ }
+ if(!list.length)html+=empty("No online lessons have been published yet.");
+ html+=list.slice().reverse().map(s=>`
+  <div class="item">
+   <h3>${esc(s.title)}</h3><span class="tag">${esc(s.subject)}</span>
+   <p>${esc(s.description)}</p><p><b>Teacher:</b> ${esc(s.teacher)}</p>
+   <h4>Lesson Notes</h4><p>${esc(s.notes||"No lesson notes have been added yet.")}</p>
+   <a class="btn" href="${safeMeetingLink(s.meetingLink)}" target="_blank" rel="noopener noreferrer">Join Online Lesson ↗</a>
+   ${teacherOnly()?`<button onclick="editClass('${s.id}')">Edit Lesson</button>
+   <button class="danger" onclick="deleteClass('${s.id}')">Delete Lesson</button>`:""}
+  </div>`).join("");
+ return panel("Online Learning Classroom",html);
+}
+function safeMeetingLink(link){
+ try{
+  const url=new URL(link);
+  if(url.protocol==="https:"||url.protocol==="http:")return esc(url.href);
+ }catch(e){}
+ return "#";
+}
+function addClass(e){
+ e.preventDefault();const link=document.getElementById("classLink").value.trim();
+ try{
+  const url=new URL(link);
+  if(url.protocol!=="https:"&&url.protocol!=="http:"){alert("Enter a valid HTTP or HTTPS link.");return}
+ }catch(error){alert("Enter a valid meeting link.");return}
+ const list=getData(keys.classes);
+ list.push({
+  id:id(),title:document.getElementById("classTitle").value.trim(),
+  subject:document.getElementById("classSubject").value.trim(),
+  description:document.getElementById("classDescription").value.trim(),
+  meetingLink:link,notes:document.getElementById("classNotes").value.trim(),
+  teacher:currentUser.name,createdAt:new Date().toLocaleString()
+ });
+ if(saveData(keys.classes,list)){alert("Online lesson published successfully!");render()}
+}
+function editClass(classId){
+ const list=getData(keys.classes),s=list.find(x=>x.id===classId);if(!s)return;
+ const title=prompt("Edit lesson title:",s.title);if(title===null)return;
+ const subject=prompt("Edit subject:",s.subject);if(subject===null)return;
+ const description=prompt("Edit lesson description:",s.description);if(description===null)return;
+ const link=prompt("Edit meeting link:",s.meetingLink);if(link===null)return;
+ try{const url=new URL(link);if(!["https:","http:"].includes(url.protocol)){alert("Invalid link.");return}}
+ catch(e){alert("Invalid meeting link.");return}
+ const notes=prompt("Edit lesson notes:",s.notes||"");if(notes===null)return;
+ s.title=title.trim()||s.title;s.subject=subject.trim()||s.subject;
+ s.description=description;s.meetingLink=link;s.notes=notes;
+ saveData(keys.classes,list);render();
+}
+function deleteClass(classId){
+ if(!confirm("Delete this online lesson?"))return;
+ saveData(keys.classes,getData(keys.classes).filter(s=>s.id!==classId));render();
+}
+
+/* ---------- LESSON 14: DIGITAL LIBRARY ---------- */
+function libraryPage(){
+ const list=getData(keys.library);
+ let html="";
+
+ if(teacherOnly()){
+  html+=`
+  <h3>Add a library resource</h3>
+  <form id="libraryForm" onsubmit="addLibraryResource(event)">
+   <label>Resource title</label>
+   <input id="resourceTitle" placeholder="e.g. Grade 3 Mathematics Notes" required>
+
+   <label>Subject</label>
+   <input id="resourceSubject" placeholder="e.g. Mathematics" required>
+
+   <label>Description</label>
+   <textarea id="resourceDescription" placeholder="Describe this learning resource..." required></textarea>
+
+   <label>Attach a PDF file (optional)</label>
+   <input id="resourceFile" type="file" accept="application/pdf">
+
+   <p class="small">PDF files are saved in this browser. Keep files about 1 MB or less to avoid filling browser storage.</p>
+
+   <label>Or enter an online resource link (optional)</label>
+   <input id="resourceLink" type="url" placeholder="https://example.com/resource">
+
+   <button class="success" type="submit">Add Library Resource</button>
+  </form>
+  <hr>
+  <h3>Manage Library Resources</h3>`;
+ }
+
+ html+=`
+ <label>Search resources by title or subject</label>
+ <input id="librarySearch" placeholder="Search the digital library..." oninput="filterLibrary()">
+ <div id="libraryList">${libraryRows(list)}</div>`;
+
+ return panel("Digital Library",html);
+}
+
+function libraryRows(list){
+ if(!list.length)return empty("No library resources are available yet.");
+
+ return list.slice().reverse().map(r=>`
+  <div class="item">
+   <h3>${esc(r.title)}</h3>
+   <span class="tag">${esc(r.subject)}</span>
+   <p>${esc(r.description)}</p>
+   <p class="small">Added by: ${esc(r.teacher||"Teacher")}</p>
+   ${(r.fileData||r.fileUrl)?`
+    <button onclick="openLibraryFile('${r.id}')">Open PDF</button>
+    <button class="success" onclick="downloadLibraryFile('${r.id}')">Download PDF</button>
+   `:""}
+   ${r.resourceLink?`
+    <a class="btn" href="${safeMeetingLink(r.resourceLink)}" target="_blank" rel="noopener noreferrer">Open Online Resource ↗</a>
+   `:""}
+   ${teacherOnly()?`
+    <button onclick="editLibraryResource('${r.id}')">Edit Details</button>
+    <button class="danger" onclick="deleteLibraryResource('${r.id}')">Delete</button>
+   `:""}
+  </div>
+ `).join("");
+}
+
+function addLibraryResource(e){
+ e.preventDefault();
+
+ const title=document.getElementById("resourceTitle").value.trim();
+ const subject=document.getElementById("resourceSubject").value.trim();
+ const description=document.getElementById("resourceDescription").value.trim();
+ const link=document.getElementById("resourceLink").value.trim();
+ const file=document.getElementById("resourceFile").files[0];
+
+ if(!file&&!link){
+  alert("Please attach a PDF file or enter an online resource link.");
+  return;
+ }
+
+ if(link){
+  try{
+   const url=new URL(link);
+   if(!["https:","http:"].includes(url.protocol)){
+    alert("Please enter a valid HTTP or HTTPS resource link.");return;
+   }
+  }catch(error){
+   alert("Please enter a valid online resource link.");return;
+  }
+ }
+
+ if(file){
+  if(file.type!=="application/pdf"&&!file.name.toLowerCase().endsWith(".pdf")){
+   alert("Please select a PDF document.");return;
+  }
+  if(file.size>1024*1024){
+   alert("This prototype accepts PDF files up to approximately 1 MB. Use an online link for larger documents.");
+   return;
+  }
+
+  const reader=new FileReader();
+  reader.onload=function(){
+   saveLibraryItem({id:id(),title,subject,description,fileName:file.name,fileData:reader.result,
+    resourceLink:link,teacher:currentUser.name,createdAt:new Date().toLocaleString()});
+  };
+  reader.onerror=function(){alert("The PDF file could not be read. Please try again.")};
+  reader.readAsDataURL(file);
+ }else{
+  saveLibraryItem({
+   id:id(),title,subject,description,
+   fileName:"",fileData:"",
+   resourceLink:link,teacher:currentUser.name,
+   createdAt:new Date().toLocaleString()
+  });
+ }
+}
+
+function saveLibraryItem(resource){
+ const list=getData(keys.library);
+ list.push(resource);
+ if(saveData(keys.library,list)){
+  alert("Resource added to the Digital Library successfully!");
+  render();
+ }
+}
+
+function filterLibrary(){
+ const search=document.getElementById("librarySearch").value.toLowerCase();
+ const found=getData(keys.library).filter(r=>
+  r.title.toLowerCase().includes(search)||
+  r.subject.toLowerCase().includes(search)
+ );
+ document.getElementById("libraryList").innerHTML=libraryRows(found);
+}
+
+function editLibraryResource(resourceId){
+ const list=getData(keys.library);
+ const r=list.find(x=>x.id===resourceId);if(!r)return;
+
+ const title=prompt("Edit resource title:",r.title);
+ if(title===null)return;
+ const subject=prompt("Edit subject:",r.subject);
+ if(subject===null)return;
+ const description=prompt("Edit description:",r.description);
+ if(description===null)return;
+ const link=prompt("Edit online resource link. Leave blank if not needed:",r.resourceLink||"");
+ if(link===null)return;
+
+ if(link.trim()){
+  try{
+   const url=new URL(link.trim());
+   if(!["https:","http:"].includes(url.protocol)){
+    alert("Please enter a valid HTTP or HTTPS link.");return;
+   }
+  }catch(e){alert("Please enter a valid online resource link.");return}
+ }
+
+ r.title=title.trim()||r.title;
+ r.subject=subject.trim()||r.subject;
+ r.description=description.trim();
+ r.resourceLink=link.trim();
+
+ if(saveData(keys.library,list)){
+  alert("Resource details updated.");
+  render();
+ }
+}
+
+function deleteLibraryResource(resourceId){
+ if(!confirm("Are you sure you want to delete this library resource?"))return;
+ const list=getData(keys.library).filter(r=>r.id!==resourceId);
+ if(saveData(keys.library,list))render();
+}
+
+function getLibraryResource(resourceId){
+ return getData(keys.library).find(r=>r.id===resourceId);
+}
+
+function openLibraryFile(resourceId){
+ const r=getLibraryResource(resourceId);
+ if(!r||(!r.fileData&&!r.fileUrl)){alert("PDF file not found.");return}
+ if(r.fileUrl){window.open(r.fileUrl,"_blank","noopener,noreferrer");return}
+ try{
+  const win=window.open();
+  if(!win){alert("Please allow pop-ups in your browser to open the PDF.");return}
+  win.document.write(
+   "<title>"+esc(r.fileName)+"</title>"+
+   "<iframe src='"+r.fileData+"' style='width:100%;height:100%;border:0'></iframe>"
+  );
+  win.document.close();
+ }catch(error){
+  alert("The PDF could not be opened.");
+ }
+}
+
+function downloadLibraryFile(resourceId){
+ const r=getLibraryResource(resourceId);
+ if(!r||(!r.fileData&&!r.fileUrl)){alert("PDF file not found.");return}
+ try{
+  const link=document.createElement("a");
+  link.href=r.fileUrl||r.fileData;
+  link.download=r.fileName||"learning-resource.pdf";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+ }catch(error){
+  alert("The PDF could not be downloaded.");
+ }
+}
+
+/* ---------- LESSON 20: SETTINGS, BACKUP AND FINAL CHECKS ---------- */
+function settingsPage(){
+ const learnerNote=learnerOnly()?`<div class="item"><h3>Account information</h3><p><b>Name:</b> ${esc(currentUser.name)}</p><p><b>Account type:</b> Learner</p><p class="small">Your teacher manages your learner account. Contact your teacher if your account details need to be changed.</p></div>`:"";
+ const teacherTools=teacherOnly()?`
+  <div class="item"><h3>Data backup</h3>
+   <p>Download a backup of this teacher workspace's learning records. Keep the backup somewhere safe. It does not include passwords or account credentials.</p>
+   <button class="success" onclick="downloadWorkspaceBackup()">Download Data Backup</button>
+  </div>
+  <div class="item"><h3>Restore data backup</h3>
+   <p>Restore a backup created by Smart Learning for this same teacher account. Restoring replaces the current workspace records with the records in the selected backup.</p>
+   <label for="backupFile">Choose backup JSON file</label><input id="backupFile" type="file" accept="application/json,.json">
+   <button class="secondary" onclick="restoreWorkspaceBackup()">Restore Backup</button>
+  </div>
+  <div class="item"><h3>Application health check</h3>
+   <p>Run a quick check of browser storage and the app's saved data collections.</p>
+   <button onclick="runAppHealthCheck()">Run Health Check</button>
+   <div id="healthResults" aria-live="polite"></div>
+  </div>`:"";
+ return panel("Application Settings",`
+  <p>Manage your Smart Learning experience and understand where your information is stored.</p>
+  <div class="grid">
+   <div class="stat">Application<strong>Smart Learning</strong></div>
+   <div class="stat">Mode<strong>Offline</strong></div>
+   <div class="stat">Signed in as<strong>${esc(currentRole)}</strong></div>
+  </div>
+  <div class="item"><h3>Storage information</h3><p>Smart Learning stores its information in this browser on this device. It does not automatically synchronise with another computer or phone. Clearing browser data may remove saved records.</p><p class="small">For a shared or production school system, use an appropriately secured hosted database and access controls. This offline version is a prototype.</p></div>
+  ${learnerNote}${teacherTools}
+  <div class="item"><h3>Sign out</h3><p>End your current session on this device.</p><button class="danger" onclick="logout()">Log Out</button></div>`);
+}
+function workspaceStorageKeys(){
+ const owner=currentRole==="learner"?(currentUser.teacherUid||"unlinked"):currentUser.uid||currentUser.id;
+ return Object.values(keys).map(k=>"slw_"+owner+"_"+k);
+}
+function downloadWorkspaceBackup(){
+ if(!teacherOnly()){alert("Only a teacher can back up a workspace.");return;}
+ try{
+  const records={};
+  workspaceStorageKeys().forEach(k=>{
+   const raw=localStorage.getItem(k);
+   if(raw!==null){JSON.parse(raw);records[k]=JSON.parse(raw);}
+  });
+  const backup={format:"SmartLearningWorkspaceBackup",version:1,createdAt:new Date().toISOString(),ownerId:currentUser.uid||currentUser.id,ownerName:currentUser.name,records};
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="Smart-Learning-Backup-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  alert("Your workspace backup has been downloaded. Store it somewhere safe.");
+ }catch(error){alert("Backup could not be created. Check your browser storage and try again.");}
+}
+function restoreWorkspaceBackup(){
+ if(!teacherOnly()){alert("Only a teacher can restore a workspace.");return;}
+ const input=document.getElementById("backupFile"),file=input&&input.files[0];
+ if(!file){alert("Choose a Smart Learning backup JSON file first.");return;}
+ const reader=new FileReader();
+ reader.onload=function(){
+  try{
+   const backup=JSON.parse(reader.result);
+   if(backup.format!=="SmartLearningWorkspaceBackup"||backup.version!==1||!backup.records||typeof backup.records!=="object")throw new Error("Invalid backup format");
+   if(String(backup.ownerId)!==String(currentUser.uid||currentUser.id))throw new Error("This backup belongs to a different teacher account");
+   const allowed=new Set(workspaceStorageKeys());
+   const entries=Object.entries(backup.records);
+   if(!entries.length||entries.some(([k,v])=>!allowed.has(k)||!Array.isArray(v)))throw new Error("Backup contains unsupported data");
+   if(!confirm("Restore this backup? Current records in this teacher workspace will be replaced."))return;
+   allowed.forEach(k=>localStorage.removeItem(k));
+   entries.forEach(([k,v])=>localStorage.setItem(k,JSON.stringify(v)));
+   alert("Backup restored successfully. The dashboard will now refresh.");render();
+  }catch(error){alert("Backup could not be restored: "+(error.message||"Invalid file"));}
+ };
+ reader.onerror=function(){alert("The selected backup file could not be read.")};
+ reader.readAsText(file);
+}
+function runAppHealthCheck(){
+ const box=document.getElementById("healthResults");if(!box)return;
+ const tests=[];
+ try{const testKey="sl_health_test";localStorage.setItem(testKey,"ok");const ok=localStorage.getItem(testKey)==="ok";localStorage.removeItem(testKey);tests.push(["Browser storage",ok,"Local browser storage can be read and written."]);}
+ catch(e){tests.push(["Browser storage",false,"Browser storage is unavailable or full."]);}
+ tests.push(["Signed-in session",!!currentUser,"A user is currently signed in."]);
+ tests.push(["Offline mode",true,"Firebase and cloud synchronisation are not used."]);
+ tests.push(["Workspace collections",workspaceStorageKeys().every(k=>{try{const v=localStorage.getItem(k);if(v!==null&&!Array.isArray(JSON.parse(v)))return false;return true}catch(e){return false}}),"Saved workspace collections contain readable JSON arrays."]);
+ box.innerHTML=tests.map(t=>`<div class="item"><b>${t[1]?"✓":"⚠"} ${esc(t[0])}</b><p>${esc(t[2])}</p></div>`).join("")+`<p class="small">This is a basic browser-side check, not a security audit or proof of multi-device operation.</p>`;
+}
+/* ---------- STARTUP ---------- */
+cloudStatus();
+</script>
+</body>
+</html>
